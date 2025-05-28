@@ -1,0 +1,346 @@
+{% extends "base.html" %}
+
+{% block title %}Transfer Confirmation{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0">Transfer Confirmation</h4>
+            </div>
+            <div class="card-body">
+                <div class="text-center mb-4">
+                    <div class="spinner-border text-primary" role="status" id="processingSpinner">
+                        <span class="visually-hidden">Processing...</span>
+                    </div>
+                    <h5 class="mt-3" id="processingText">Processing Your Transaction</h5>
+                    <p class="text-muted">Our fraud detection system is analyzing this transaction.</p>
+                </div>
+                
+                <div class="progress mb-4">
+                    <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%" id="progressBar"></div>
+                </div>
+                
+                <div id="verificationSteps">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="verification-status me-3" id="balanceCheck">
+                            <i class="bi bi-hourglass"></i>
+                        </div>
+                        <div>
+                            <h6 class="mb-0">Verifying Account Balance</h6>
+                            <small class="text-muted">Checking if you have sufficient funds</small>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="verification-status me-3" id="pinCheck">
+                            <i class="bi bi-hourglass"></i>
+                        </div>
+                        <div>
+                            <h6 class="mb-0">Validating PIN</h6>
+                            <small class="text-muted">Ensuring your authentication is correct</small>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="verification-status me-3" id="receiverCheck">
+                            <i class="bi bi-hourglass"></i>
+                        </div>
+                        <div>
+                            <h6 class="mb-0">Confirming Receiver Details</h6>
+                            <small class="text-muted">Validating the recipient's account</small>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="verification-status me-3" id="fraudCheck">
+                            <i class="bi bi-hourglass"></i>
+                        </div>
+                        <div>
+                            <h6 class="mb-0">Running Fraud Detection</h6>
+                            <small class="text-muted">Our ML model is analyzing transaction patterns</small>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Transaction Details (initially hidden) -->
+                <div id="transferDetails" class="mt-4" style="display: none;">
+                    <h5 class="border-bottom pb-2">Transaction Details</h5>
+                    <div class="row mt-3">
+                        <div class="col-md-6">
+                            <p><strong>From:</strong> <span id="sender">{{ sender }}</span></p>
+                            <p><strong>To:</strong> <span id="receiver">{{ receiver }}</span></p>
+                            <p><strong>Amount:</strong> ₹<span id="amount">{{ amount }}</span></p>
+                            <p><strong>Date & Time:</strong> <span id="timestamp">{{ timestamp }}</span></p>
+                        </div>
+                        <div class="col-md-6">
+                            <div id="transferStatus">
+                                <!-- Status will be populated by JavaScript -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Fraud Alert (initially hidden) -->
+                <div class="alert alert-danger mt-4" id="fraudAlert" style="display: none;">
+                    <h5><i class="bi bi-exclamation-triangle-fill"></i> Potential Fraud Detected</h5>
+                    <p>Our system has detected unusual patterns in this transaction and has blocked it to protect your account.</p>
+                    <div id="fraudReason">
+                        <!-- Reason will be populated by JavaScript -->
+                    </div>
+                </div>
+                
+                <!-- Success Alert (initially hidden) -->
+                <div class="alert alert-success mt-4" id="successAlert" style="display: none;">
+                    <h5><i class="bi bi-check-circle-fill"></i> Transfer Successful</h5>
+                    <p>Your money has been successfully transferred. The transaction was verified as secure by our fraud detection system.</p>
+                </div>
+            </div>
+            <div class="card-footer text-center" id="actionButtons" style="display: none;">
+                <a href="{{ url_for('dashboard') }}" class="btn btn-primary">Back to Dashboard</a>
+                <a href="{{ url_for('transactions') }}" class="btn btn-outline-primary ms-2">View All Transactions</a>
+            </div>
+        </div>
+        
+        <!-- Fraud Detection Explanation Card (initially hidden) -->
+        <div class="card mt-4" id="fraudExplanationCard" style="display: none;">
+            <div class="card-header bg-danger text-white">
+                <h5 class="mb-0">Fraud Detection Analysis</h5>
+            </div>
+            <div class="card-body">
+                <h6>Why was this transaction flagged?</h6>
+                <p>Our machine learning model analyzes multiple factors to identify potentially fraudulent transactions. Here's what triggered the alert:</p>
+                
+                <div class="mb-3">
+                    <h6 class="mb-2">Transaction Data</h6>
+                    <table class="table table-sm table-bordered">
+                        <tr>
+                            <th style="width: 40%">Feature</th>
+                            <th>Value</th>
+                            <th>Risk Level</th>
+                        </tr>
+                        <tr id="featureStep">
+                            <td>Transaction step</td>
+                            <td id="stepValue">{{ step }}</td>
+                            <td><span class="badge bg-success">Low</span></td>
+                        </tr>
+                        <tr id="featureOldBalanceOrg">
+                            <td>Sender's initial balance</td>
+                            <td id="oldBalanceOrgValue">₹{{ "%.2f"|format(oldbalanceOrg) }}</td>
+                            <td id="oldBalanceOrgRisk"><span class="badge bg-warning">Medium</span></td>
+                        </tr>
+                        <tr id="featureNewBalanceOrig">
+                            <td>Sender's final balance</td>
+                            <td id="newBalanceOrigValue">₹{{ "%.2f"|format(newbalanceOrig) }}</td>
+                            <td id="newBalanceOrigRisk">
+                                {% if newbalanceOrig < 100 %}
+                                <span class="badge bg-danger">High</span>
+                                {% else %}
+                                <span class="badge bg-success">Low</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        <tr id="featureOldBalanceDest">
+                            <td>Receiver's initial balance</td>
+                            <td id="oldBalanceDestValue">₹{{ "%.2f"|format(oldbalanceDest) }}</td>
+                            <td id="oldBalanceDestRisk"><span class="badge bg-success">Low</span></td>
+                        </tr>
+                        <tr id="featureNewBalanceDest">
+                            <td>Receiver's final balance</td>
+                            <td id="newBalanceDestValue">₹{{ "%.2f"|format(newbalanceDest) }}</td>
+                            <td id="newBalanceDestRisk">
+                                {% if newbalanceDest > oldbalanceDest * 2 %}
+                                <span class="badge bg-danger">High</span>
+                                {% else %}
+                                <span class="badge bg-success">Low</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+                
+                <div class="mb-3">
+                    <h6 class="mb-2">Risk Score Visualization</h6>
+                    <div class="progress mb-2" style="height: 25px;">
+                        <div class="progress-bar bg-danger" role="progressbar" style="width: 85%" aria-valuenow="85" aria-valuemin="0" aria-valuemax="100">Risk Score: 85%</div>
+                    </div>
+                    <small class="text-muted">Our model detected a high risk score of 85%, which exceeds our threshold of 70%.</small>
+                </div>
+                
+                <div class="mb-3">
+                    <h6 class="mb-2">Common Fraud Indicators Found</h6>
+                    <ul>
+                        <li>Unusual balance changes relative to account history</li>
+                        <li>Transaction pattern deviation from normal behavior</li>
+                        <li>Suspicious timing or amount relative to account activity</li>
+                    </ul>
+                </div>
+                
+                <h6>How our ML model works</h6>
+                <p>Our fraud detection system uses a Gradient Boosting Classifier trained on millions of transaction records. It identifies patterns that are common in fraudulent activities and provides protection against unauthorized transactions.</p>
+                
+                <div class="alert alert-info mt-3">
+                    <i class="bi bi-info-circle-fill"></i> If you believe this transaction was incorrectly flagged, please contact our support team for assistance.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .verification-status {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: #f8f9fa;
+    }
+    
+    .verification-status.completed {
+        background-color: #198754;
+        color: white;
+    }
+    
+    .verification-status.failed {
+        background-color: #dc3545;
+        color: white;
+    }
+    
+    .verification-status.processing {
+        background-color: #0d6efd;
+        color: white;
+    }
+    
+    #progressBar {
+        transition: width 0.5s ease-in-out;
+    }
+    
+    .risk-factor {
+        padding: 10px;
+        border-radius: 5px;
+        margin-bottom: 10px;
+    }
+    
+    .risk-factor.high {
+        background-color: #f8d7da;
+    }
+    
+    .risk-factor.medium {
+        background-color: #fff3cd;
+    }
+    
+    .risk-factor.low {
+        background-color: #d1e7dd;
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Simulate the verification process
+    document.addEventListener('DOMContentLoaded', function() {
+        const progressBar = document.getElementById('progressBar');
+        const processingSpinner = document.getElementById('processingSpinner');
+        const processingText = document.getElementById('processingText');
+        const transferDetails = document.getElementById('transferDetails');
+        const actionButtons = document.getElementById('actionButtons');
+        const fraudAlert = document.getElementById('fraudAlert');
+        const successAlert = document.getElementById('successAlert');
+        const fraudExplanationCard = document.getElementById('fraudExplanationCard');
+        
+        const balanceCheck = document.getElementById('balanceCheck');
+        const pinCheck = document.getElementById('pinCheck');
+        const receiverCheck = document.getElementById('receiverCheck');
+        const fraudCheck = document.getElementById('fraudCheck');
+        
+        // Simulate verification steps
+        setTimeout(function() {
+            progressBar.style.width = '25%';
+            balanceCheck.innerHTML = '<i class="bi bi-check-circle-fill"></i>';
+            balanceCheck.classList.add('completed');
+        }, 1000);
+        
+        setTimeout(function() {
+            progressBar.style.width = '50%';
+            pinCheck.innerHTML = '<i class="bi bi-check-circle-fill"></i>';
+            pinCheck.classList.add('completed');
+        }, 2000);
+        
+        setTimeout(function() {
+            progressBar.style.width = '75%';
+            receiverCheck.innerHTML = '<i class="bi bi-check-circle-fill"></i>';
+            receiverCheck.classList.add('completed');
+        }, 3000);
+        
+        // Determine if transaction is fraudulent based on query parameter or predicted_fraud property
+        const urlParams = new URLSearchParams(window.location.search);
+        const isFraud = urlParams.get('is_fraud') === 'true' || {{ predicted_fraud|lower }};
+        
+        setTimeout(function() {
+            progressBar.style.width = '100%';
+            
+            if (isFraud) {
+                // Show fraud alert
+                fraudCheck.innerHTML = '<i class="bi bi-x-circle-fill"></i>';
+                fraudCheck.classList.add('failed');
+                
+                processingSpinner.style.display = 'none';
+                processingText.innerHTML = 'Transaction Blocked';
+                processingText.classList.add('text-danger');
+                
+                fraudAlert.style.display = 'block';
+                fraudExplanationCard.style.display = 'block';
+                
+                // Populate fraud reason
+                document.getElementById('fraudReason').innerHTML = 'The transaction showed unusual patterns in account balance changes and transfer amounts.';
+                
+                // Show transaction details with failed status
+                transferDetails.style.display = 'block';
+                document.getElementById('transferStatus').innerHTML = '<div class="alert alert-danger">BLOCKED</div>';
+                
+                // Analyze which features triggered the fraud alert
+                const newBalanceOrig = parseFloat('{{ newbalanceOrig }}');
+                const oldBalanceDest = parseFloat('{{ oldbalanceDest }}');
+                const newBalanceDest = parseFloat('{{ newbalanceDest }}');
+                
+                // Update risk badges based on values
+                if (newBalanceOrig < 0) {
+                    document.getElementById('newBalanceOrigRisk').innerHTML = '<span class="badge bg-danger">High</span>';
+                    document.getElementById('fraudReason').innerHTML += '<br><strong>Negative balance detected:</strong> Transaction would result in account overdraft.';
+                } else if (newBalanceOrig < 100) {
+                    document.getElementById('newBalanceOrigRisk').innerHTML = '<span class="badge bg-danger">High</span>';
+                    document.getElementById('fraudReason').innerHTML += '<br><strong>Low balance warning:</strong> Transaction would leave account with very low balance.';
+                }
+                
+                if (oldBalanceDest > 0 && newBalanceDest > oldBalanceDest * 2) {
+                    document.getElementById('newBalanceDestRisk').innerHTML = '<span class="badge bg-danger">High</span>';
+                    document.getElementById('fraudReason').innerHTML += '<br><strong>Unusual increase detected:</strong> Receiving account balance increased by more than 100%.';
+                }
+            } else {
+                // Show success
+                fraudCheck.innerHTML = '<i class="bi bi-check-circle-fill"></i>';
+                fraudCheck.classList.add('completed');
+                
+                processingSpinner.style.display = 'none';
+                processingText.innerHTML = 'Transaction Completed';
+                processingText.classList.add('text-success');
+                
+                successAlert.style.display = 'block';
+                
+                // Show transaction details with success status
+                transferDetails.style.display = 'block';
+                document.getElementById('transferStatus').innerHTML = '<div class="alert alert-success">COMPLETED</div>';
+            }
+            
+            // Show action buttons
+            actionButtons.style.display = 'block';
+            
+        }, 4000);
+    });
+</script>
+{% endblock %}

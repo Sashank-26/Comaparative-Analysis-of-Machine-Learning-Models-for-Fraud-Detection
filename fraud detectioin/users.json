@@ -1,0 +1,16 @@
+{
+    "sandeep@ybl": {
+        "name": "varada sandeep",
+        "password": "1234",
+        "pin": "1234",
+        "balance": 10500.0,
+        "created_at": "2025-03-18 23:31:29"
+    },
+    "varada@ybl": {
+        "name": "VARADA SANDEEP ",
+        "password": "1234",
+        "pin": "1234",
+        "balance": 9500.0,
+        "created_at": "2025-03-18 23:34:15"
+    }
+}

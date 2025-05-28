@@ -1,0 +1,16 @@
+[
+    {
+        "id": "fe37b57a-fc09-4985-9ae9-2c7c0f5c58ca",
+        "sender": "sandeep@ybl",
+        "receiver": "varada@ybl",
+        "amount": 1000.0,
+        "timestamp": "2025-03-18 23:52:59",
+        "step": 1,
+        "oldbalanceOrg": 10500.0,
+        "newbalanceOrig": -100,
+        "oldbalanceDest": 9500.0,
+        "newbalanceDest": 19500.0,
+        "predicted_fraud": true,
+        "status": "blocked"
+    }
+]

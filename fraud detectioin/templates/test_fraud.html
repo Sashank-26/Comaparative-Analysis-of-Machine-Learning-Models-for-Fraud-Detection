@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block title %}Test Fraud Detection{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card border-danger">
+            <div class="card-header bg-danger text-white">
+                <h4 class="mb-0">Test Fraud Detection</h4>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-warning">
+                    <strong>Testing Mode:</strong> This form will simulate fraudulent transactions for testing purposes.
+                </div>
+                
+                <form method="POST" action="{{ url_for('test_fraud_detection') }}">
+                    <div class="mb-3">
+                        <label for="receiver_id" class="form-label">Receiver's UPI ID</label>
+                        <select class="form-select" id="receiver_id" name="receiver_id" required>
+                            {% for uid, udata in users.items() %}
+                                {% if uid != session.user_id %}
+                                    <option value="{{ uid }}">{{ uid }} ({{ udata.name }})</option>
+                                {% endif %}
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="amount" class="form-label">Amount (₹)</label>
+                        <input type="number" class="form-control" id="amount" name="amount" value="1000" min="1" required>
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-danger">Simulate Fraudulent Transaction</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

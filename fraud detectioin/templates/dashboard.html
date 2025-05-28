@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <h1 class="mb-4">Welcome, {{ user.name }}!</h1>
+    </div>
+</div>
+
+<!-- Fraud Alert Section - Shows only if there are blocked transactions -->
+{% set fraud_transactions = transactions | selectattr('predicted_fraud', 'equalto', true) | list %}
+{% if fraud_transactions %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card border-danger">
+            <div class="card-header bg-danger text-white">
+                <h5 class="mb-0"><i class="bi bi-exclamation-triangle-fill"></i> Fraud Alerts</h5>
+            </div>
+            <div class="card-body">
+                <p>Our system has detected and blocked <strong>{{ fraud_transactions|length }}</strong> potentially fraudulent transactions. These transactions were blocked to protect your account.</p>
+                <a href="{{ url_for('fraud_alerts') }}" class="btn btn-outline-danger">View Fraud Alerts</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">Account Summary</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <span class="text-muted">UPI ID:</span>
+                    <span class="fw-bold">{{ session.user_id }}</span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <span class="text-muted">Available Balance:</span>
+                    <span class="fw-bold fs-4">₹{{ "%.2f"|format(user.balance) }}</span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="text-muted">Account Created:</span>
+                    <span>{{ user.created_at }}</span>
+                </div>
+            </div>
+            <div class="card-footer">
+                <div class="d-grid gap-2">
+                    <a href="{{ url_for('transfer') }}" class="btn btn-primary">Make a Transfer</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">Recent Transactions</h5>
+            </div>
+            <div class="card-body">
+                {% if transactions %}
+                    <div class="table-responsive">
+                        <table class="table table-hover table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Details</th>
+                                    <th>Amount</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for t in transactions[:5] %}
+                                <tr {% if t.predicted_fraud %}class="table-danger"{% endif %}>
+                                    <td>{{ t.timestamp.split(' ')[0] }}</td>
+                                    <td>
+                                        {% if t.sender == session.user_id %}
+                                            <span class="text-danger">Sent to {{ t.receiver }}</span>
+                                        {% else %}
+                                            <span class="text-success">Received from {{ t.sender }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if t.sender == session.user_id %}
+                                            <span class="text-danger">-₹{{ "%.2f"|format(t.amount) }}</span>
+                                        {% else %}
+                                            <span class="text-success">+₹{{ "%.2f"|format(t.amount) }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if t.predicted_fraud %}
+                                            <span class="badge bg-danger">Blocked</span>
+                                            <i class="bi bi-shield-exclamation text-danger" data-bs-toggle="tooltip" title="Flagged as potential fraud"></i>
+                                        {% elif t.status == 'completed' %}
+                                            <span class="badge bg-success">Completed</span>
+                                        {% else %}
+                                            <span class="badge bg-warning">Pending</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-3">
+                        <p class="mb-0">No transactions yet.</p>
+                    </div>
+                {% endif %}
+            </div>
+            <div class="card-footer">
+                <div class="d-grid gap-2">
+                    <a href="{{ url_for('transactions') }}" class="btn btn-outline-primary">View All Transactions</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">Quick Actions</h5>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-md-3 mb-3">
+                        <a href="{{ url_for('transfer') }}" class="btn btn-outline-primary d-block py-3">
+                            <i class="bi bi-send"></i> Send Money
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <a href="{{ url_for('transactions') }}" class="btn btn-outline-primary d-block py-3">
+                            <i class="bi bi-clock-history"></i> Transaction History
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <a href="{{ url_for('fraud_alerts') }}" class="btn btn-outline-danger d-block py-3">
+                            <i class="bi bi-shield-exclamation"></i> Fraud Alerts
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <a href="#" class="btn btn-outline-primary d-block py-3">
+                            <i class="bi bi-gear"></i> Security Settings
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Initialize tooltips
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+      return new bootstrap.Tooltip(tooltipTriggerEl)
+    })
+</script>
+{% endblock %}

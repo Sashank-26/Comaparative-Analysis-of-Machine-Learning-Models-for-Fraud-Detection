@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block title %}Register{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0">Create an Account</h4>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('register') }}">
+                    <div class="mb-3">
+                        <label for="user_id" class="form-label">User ID (UPI ID)</label>
+                        <input type="text" class="form-control" id="user_id" name="user_id" required placeholder="username@upi">
+                        <div class="form-text">This will be your unique identifier for transactions.</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Full Name</label>
+                        <input type="text" class="form-control" id="name" name="name" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Password</label>
+                        <input type="password" class="form-control" id="password" name="password" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="pin" class="form-label">Transaction PIN (4 digits)</label>
+                        <input type="password" class="form-control" id="pin" name="pin" pattern="[0-9]{4}" maxlength="4" required>
+                        <div class="form-text">This PIN will be used to authorize your transactions.</div>
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary">Register</button>
+                    </div>
+                </form>
+            </div>
+            <div class="card-footer text-center">
+                Already have an account? <a href="{{ url_for('login') }}">Login here</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

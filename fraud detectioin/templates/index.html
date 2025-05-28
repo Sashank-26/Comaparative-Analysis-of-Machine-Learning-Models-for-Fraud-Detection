@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block title %}Home{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center mt-5">
+    <div class="col-md-10 text-center">
+        <h1 class="display-4 mb-4">Welcome to UPI Secure Pay</h1>
+        <p class="lead">A secure payment platform with advanced fraud detection powered by machine learning.</p>
+        
+        <div class="row mt-5">
+            <div class="col-md-4 mb-4">
+                <div class="card h-100 p-4">
+                    <div class="card-body text-center">
+                        <h3 class="card-title">Fast Transfers</h3>
+                        <p class="card-text">Send money instantly to friends and family with just a few clicks.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 mb-4">
+                <div class="card h-100 p-4">
+                    <div class="card-body text-center">
+                        <h3 class="card-title">Secure Payments</h3>
+                        <p class="card-text">Our ML-powered fraud detection system keeps your transactions safe.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 mb-4">
+                <div class="card h-100 p-4">
+                    <div class="card-body text-center">
+                        <h3 class="card-title">Easy to Use</h3>
+                        <p class="card-text">Simple interface makes managing your money easier than ever.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="mt-5">
+            {% if 'user_id' in session %}
+                <a href="{{ url_for('dashboard') }}" class="btn btn-primary btn-lg">Go to Dashboard</a>
+            {% else %}
+                <a href="{{ url_for('login') }}" class="btn btn-primary btn-lg me-3">Login</a>
+                <a href="{{ url_for('register') }}" class="btn btn-outline-primary btn-lg">Register</a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

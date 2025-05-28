@@ -1,0 +1,224 @@
+{% extends "base.html" %}
+
+{% block title %}Fraud Alerts{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <div class="card border-danger">
+            <div class="card-header bg-danger text-white d-flex justify-content-between align-items-center">
+                <h4 class="mb-0"><i class="bi bi-shield-exclamation"></i> Fraud Alerts Dashboard</h4>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <h5>How Our Fraud Detection Works</h5>
+                    <p>Our system uses machine learning to analyze transaction patterns and identify potentially fraudulent activities. Transactions are evaluated based on:</p>
+                    <ul>
+                        <li>Account balance changes</li>
+                        <li>Transaction amounts</li>
+                        <li>Transaction timing</li>
+                        <li>Historical patterns</li>
+                    </ul>
+                </div>
+                
+                <h4 class="mb-3 mt-4">Recent Blocked Transactions</h4>
+                
+                {% set fraud_transactions = transactions | selectattr('predicted_fraud', 'equalto', true) | list %}
+                
+                {% if fraud_transactions %}
+                <div class="table-responsive">
+                    <table class="table table-hover table-bordered">
+                        <thead class="table-danger">
+                            <tr>
+                                <th>Date & Time</th>
+                                <th>Transaction ID</th>
+                                <th>From</th>
+                                <th>To</th>
+                                <th>Amount</th>
+                                <th>Status</th>
+                                <th>Details</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for t in fraud_transactions %}
+                            <tr>
+                                <td>{{ t.timestamp }}</td>
+                                <td>{{ t.id[:8] }}...</td>
+                                <td>{{ t.sender }}</td>
+                                <td>{{ t.receiver }}</td>
+                                <td>₹{{ "%.2f"|format(t.amount) }}</td>
+                                <td>
+                                    <span class="badge bg-danger">BLOCKED</span>
+                                </td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#fraudModal{{ loop.index }}">
+                                        View Analysis
+                                    </button>
+                                </td>
+                            </tr>
+                            
+                            <!-- Fraud Analysis Modal -->
+                            <div class="modal fade" id="fraudModal{{ loop.index }}" tabindex="-1" aria-hidden="true">
+                                <div class="modal-dialog modal-lg">
+                                    <div class="modal-content">
+                                        <div class="modal-header bg-danger text-white">
+                                            <h5 class="modal-title">Fraud Analysis Report</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <div class="row">
+                                                <div class="col-md-6">
+                                                    <h6>Transaction Details</h6>
+                                                    <p><strong>ID:</strong> {{ t.id }}</p>
+                                                    <p><strong>Date/Time:</strong> {{ t.timestamp }}</p>
+                                                    <p><strong>From:</strong> {{ t.sender }}</p>
+                                                    <p><strong>To:</strong> {{ t.receiver }}</p>
+                                                    <p><strong>Amount:</strong> ₹{{ "%.2f"|format(t.amount) }}</p>
+                                                    <p><strong>Status:</strong> <span class="badge bg-danger">BLOCKED</span></p>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <h6>Risk Factors</h6>
+                                                    <div class="progress mb-2">
+                                                        <div class="progress-bar bg-danger" role="progressbar" style="width: 85%">Balance Change: High Risk</div>
+                                                    </div>
+                                                    <div class="progress mb-2">
+                                                        <div class="progress-bar bg-warning" role="progressbar" style="width: 60%">Transaction Amount: Medium Risk</div>
+                                                    </div>
+                                                    <div class="progress mb-2">
+                                                        <div class="progress-bar bg-success" role="progressbar" style="width: 30%">Transaction Timing: Low Risk</div>
+                                                    </div>
+                                                    <div class="progress mb-2">
+                                                        <div class="progress-bar bg-danger" role="progressbar" style="width: 80%">Pattern Recognition: High Risk</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            
+                                            <div class="row mt-4">
+                                                <div class="col-12">
+                                                    <h6>ML Analysis Data Points</h6>
+                                                    <table class="table table-sm table-bordered">
+                                                        <thead class="table-secondary">
+                                                            <tr>
+                                                                <th>Feature</th>
+                                                                <th>Value</th>
+                                                                <th>Normal Range</th>
+                                                                <th>Risk Level</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            <tr>
+                                                                <td>Step</td>
+                                                                <td>{{ t.step }}</td>
+                                                                <td>N/A</td>
+                                                                <td><span class="badge bg-success">Low</span></td>
+                                                            </tr>
+                                                            <tr>
+                                                                <td>Sender Balance (Before)</td>
+                                                                <td>₹{{ "%.2f"|format(t.oldbalanceOrg) }}</td>
+                                                                <td>Varies</td>
+                                                                <td><span class="badge bg-warning">Medium</span></td>
+                                                            </tr>
+                                                            <tr>
+                                                                <td>Sender Balance (After)</td>
+                                                                <td>₹{{ "%.2f"|format(t.newbalanceOrig) }}</td>
+                                                                <td>Should be positive</td>
+                                                                <td>
+                                                                    {% if t.newbalanceOrig < 0 %}
+                                                                    <span class="badge bg-danger">High</span>
+                                                                    {% else %}
+                                                                    <span class="badge bg-success">Low</span>
+                                                                    {% endif %}
+                                                                </td>
+                                                            </tr>
+                                                            <tr>
+                                                                <td>Receiver Balance (Before)</td>
+                                                                <td>₹{{ "%.2f"|format(t.oldbalanceDest) }}</td>
+                                                                <td>Varies</td>
+                                                                <td><span class="badge bg-warning">Medium</span></td>
+                                                            </tr>
+                                                            <tr>
+                                                                <td>Receiver Balance (After)</td>
+                                                                <td>₹{{ "%.2f"|format(t.newbalanceDest) }}</td>
+                                                                <td>Should increase</td>
+                                                                <td>
+                                                                    {% if t.newbalanceDest <= t.oldbalanceDest %}
+                                                                    <span class="badge bg-danger">High</span>
+                                                                    {% else %}
+                                                                    <span class="badge bg-success">Low</span>
+                                                                    {% endif %}
+                                                                </td>
+                                                            </tr>
+                                                            <tr>
+                                                                <td>Balance Increase Ratio</td>
+                                                                <td>
+                                                                    {% if t.oldbalanceDest > 0 %}
+                                                                        {{ "%.2f"|format((t.newbalanceDest - t.oldbalanceDest) / t.oldbalanceDest * 100) }}%
+                                                                    {% else %}
+                                                                        N/A
+                                                                    {% endif %}
+                                                                </td>
+                                                                <td><50%</td>
+                                                                <td>
+                                                                    {% if t.oldbalanceDest > 0 and (t.newbalanceDest - t.oldbalanceDest) / t.oldbalanceDest > 0.5 %}
+                                                                    <span class="badge bg-danger">High</span>
+                                                                    {% else %}
+                                                                    <span class="badge bg-success">Low</span>
+                                                                    {% endif %}
+                                                                </td>
+                                                            </tr>
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                            {% if session.admin %}
+                                            <button type="button" class="btn btn-success">Override and Approve</button>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="alert alert-success">
+                    <p class="mb-0">No fraudulent transactions detected in your account history.</p>
+                </div>
+                {% endif %}
+                
+                <h4 class="mb-3 mt-4">Fraud Prevention Tips</h4>
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <h5 class="card-title">Never Share Your PIN</h5>
+                                <p class="card-text">Your transaction PIN should be kept secret and never shared with anyone, including customer support representatives.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <h5 class="card-title">Verify UPI IDs</h5>
+                                <p class="card-text">Always double-check the recipient's UPI ID before confirming any transaction.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <h5 class="card-title">Report Suspicious Activity</h5>
+                                <p class="card-text">If you notice any unauthorized transactions, report them immediately to our support team.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
